@@ -15,11 +15,22 @@ function StreamingCodePage() {
 	const [started, setStarted] = useState(false);
 	const [code, setCode] = useState("----");
 	const [spinKey, setSpinKey] = useState(0);
-	const [srMessage, setSrMessage] = useState("");
 
 	const chars = useMemo(() => code.split(""), [code]);
 
 	async function onStart() {
+		let screenShareMessage = "";
+
+		if (navigator.mediaDevices?.getDisplayMedia) {
+			try {
+				await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
+			} catch {
+				screenShareMessage = "Screen share canceled";
+			}
+		} else {
+			screenShareMessage = "Screen share not supported";
+		}
+
 		const next = generateCode(4);
 		setStarted(true);
 		setCode(next);
@@ -29,9 +40,8 @@ function StreamingCodePage() {
 		// Provide SR-only feedback only.
 		try {
 			await copyToClipboard(next);
-			setSrMessage(`Copied ${next}`);
 		} catch {
-			setSrMessage("Copy failed");
+      console.error(screenShareMessage ? `${screenShareMessage}. Copy failed` : "Copy failed");
 		}
 	}
 
@@ -73,11 +83,6 @@ function StreamingCodePage() {
 				>
 					画面共有
 				</button>
-
-				{/* Screen-reader-only feedback for copy result */}
-				<div className="sr-only" aria-live="polite">
-					{srMessage}
-				</div>
 			</div>
 		</div>
 	);
