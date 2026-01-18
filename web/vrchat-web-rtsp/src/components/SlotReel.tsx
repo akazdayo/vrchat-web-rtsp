@@ -1,7 +1,7 @@
-import { useMemo } from "react";
 import { motion, useReducedMotion } from "motion/react";
-import { cn } from "@/lib/utils";
+import { useMemo } from "react";
 import { randomChar } from "@/lib/code-generator";
+import { cn } from "@/lib/utils";
 
 interface SlotReelProps {
 	/** Target character to land on */

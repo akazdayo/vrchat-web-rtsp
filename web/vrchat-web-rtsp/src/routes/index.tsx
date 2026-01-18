@@ -1,10 +1,10 @@
-import { useState, useMemo } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useReducedMotion } from "motion/react";
-import { cn } from "@/lib/utils";
+import { useMemo, useState } from "react";
+import { SlotReel } from "@/components/SlotReel";
 import { copyToClipboard } from "@/lib/clipboard";
 import { generateCode } from "@/lib/code-generator";
-import { SlotReel } from "@/components/SlotReel";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/")({
 	component: StreamingCodePage,
