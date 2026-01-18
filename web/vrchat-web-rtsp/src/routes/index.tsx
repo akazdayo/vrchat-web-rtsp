@@ -1,10 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useReducedMotion } from "motion/react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { SlotReel } from "@/components/SlotReel";
 import { copyToClipboard } from "@/lib/clipboard";
 import { generateCode } from "@/lib/code-generator";
+import { createWhipClient, getMediamtxOutputUrl } from "@/lib/whip";
 import { cn } from "@/lib/utils";
+
+const SLOT_IDS = ["slot-1", "slot-2", "slot-3", "slot-4"];
 
 export const Route = createFileRoute("/")({
 	component: StreamingCodePage,
@@ -17,13 +20,24 @@ function StreamingCodePage() {
 	const [spinKey, setSpinKey] = useState(0);
 
 	const chars = useMemo(() => code.split(""), [code]);
+	const whipClient = useMemo(() => createWhipClient(), []);
+
+	useEffect(() => {
+		return () => {
+			void whipClient.stop();
+		};
+	}, [whipClient]);
 
 	async function onStart() {
 		let screenShareMessage = "";
+		let stream: MediaStream | null = null;
 
 		if (navigator.mediaDevices?.getDisplayMedia) {
 			try {
-				await navigator.mediaDevices.getDisplayMedia({ video: true, audio: true });
+				stream = await navigator.mediaDevices.getDisplayMedia({
+					video: true,
+					audio: true,
+				});
 			} catch {
 				screenShareMessage = "Screen share canceled";
 			}
@@ -31,17 +45,33 @@ function StreamingCodePage() {
 			screenShareMessage = "Screen share not supported";
 		}
 
+		if (!stream) {
+			if (screenShareMessage) {
+				console.error(screenShareMessage);
+			}
+			return;
+		}
+
 		const next = generateCode(4);
+		const outputUrl = getMediamtxOutputUrl(next);
+
+		try {
+			await whipClient.start(stream, next);
+		} catch (error) {
+			console.error("Failed to publish via WHIP", error);
+			return;
+		}
+
 		setStarted(true);
 		setCode(next);
-		setSpinKey((k) => k + 1);
+		setSpinKey((currentKey) => currentKey + 1);
 
 		// Keep UI identical to the reference: no visible copy toast.
 		// Provide SR-only feedback only.
 		try {
-			await copyToClipboard(next);
+			await copyToClipboard(outputUrl);
 		} catch {
-      console.error(screenShareMessage ? `${screenShareMessage}. Copy failed` : "Copy failed");
+			console.error("Copy failed");
 		}
 	}
 
@@ -51,13 +81,13 @@ function StreamingCodePage() {
 				{/* 4 slots */}
 				<div className="flex items-center gap-4" key={spinKey}>
 					{started ? (
-						chars.map((ch, i) => (
+						SLOT_IDS.map((slotId, index) => (
 							<SlotReel
-								key={`${spinKey}-${i}`}
-								target={ch}
-								delayMs={reduceMotion ? 0 : i * 30}
+								key={`${spinKey}-${slotId}`}
+								target={chars[index] ?? "-"}
+								delayMs={reduceMotion ? 0 : index * 30}
 								cellPx={48}
-								spinSteps={14 + i * 2}
+								spinSteps={14 + index * 2}
 							/>
 						))
 					) : (

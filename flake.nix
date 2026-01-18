@@ -12,6 +12,7 @@
           bun
           go
           nodejs_24
+          mediamtx
         ];
       };
     }

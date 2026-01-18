@@ -1,0 +1,6 @@
+webrtc: yes
+webrtcAddress: :8889
+webrtcEncryption: no
+paths:
+  all_others:
+    source: publisher
