@@ -33,6 +33,10 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 				rel: "stylesheet",
 				href: appCss,
 			},
+      {
+        rel: "preconnect",
+        href: "https://challenges.cloudflare.com",
+      }
 		],
 	}),
 
@@ -48,6 +52,11 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 			<body>
 				<Header />
 				{children}
+				<script
+					src="https://challenges.cloudflare.com/turnstile/v0/api.js"
+					async
+					defer
+				></script>
 				<TanStackDevtools
 					config={{
 						position: "bottom-right",

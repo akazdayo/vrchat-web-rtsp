@@ -4,8 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import { SlotReel } from "@/components/SlotReel";
 import { copyToClipboard } from "@/lib/clipboard";
 import { generateCode } from "@/lib/code-generator";
-import { createWhipClient, getMediamtxOutputUrl } from "@/lib/whip";
 import { cn } from "@/lib/utils";
+import { createWhipClient, getMediamtxOutputUrl } from "@/lib/whip";
 
 const SLOT_IDS = ["slot-1", "slot-2", "slot-3", "slot-4"];
 
@@ -18,9 +18,14 @@ function StreamingCodePage() {
 	const [started, setStarted] = useState(false);
 	const [code, setCode] = useState("----");
 	const [spinKey, setSpinKey] = useState(0);
+	const [siteKey, setSiteKey] = useState<string | undefined>(undefined);
 
 	const chars = useMemo(() => code.split(""), [code]);
 	const whipClient = useMemo(() => createWhipClient(), []);
+
+	useEffect(() => {
+		setSiteKey(import.meta.env.VITE_SITE_KEY);
+	}, []);
 
 	useEffect(() => {
 		return () => {
@@ -113,6 +118,7 @@ function StreamingCodePage() {
 				>
 					画面共有
 				</button>
+				{siteKey && <div className="cf-turnstile" data-sitekey={siteKey} />}
 			</div>
 		</div>
 	);
