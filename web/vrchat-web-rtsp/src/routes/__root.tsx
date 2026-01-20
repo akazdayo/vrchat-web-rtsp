@@ -33,10 +33,10 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 				rel: "stylesheet",
 				href: appCss,
 			},
-      {
-        rel: "preconnect",
-        href: "https://challenges.cloudflare.com",
-      }
+			{
+				rel: "preconnect",
+				href: "https://challenges.cloudflare.com",
+			},
 		],
 	}),
 
