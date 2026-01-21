@@ -1,10 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useReducedMotion } from "motion/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { SlotReel } from "@/components/SlotReel";
+import { InlineMessage } from "@/components/InlineMessage";
+import { SlotDisplay } from "@/components/SlotDisplay";
+import { StartButton } from "@/components/StartButton";
 import { copyToClipboard } from "@/lib/clipboard";
 import { generateCode } from "@/lib/code-generator";
-import { cn } from "@/lib/utils";
 import { createWhipClient, getMediamtxOutputUrl } from "@/lib/whip";
 
 declare global {
@@ -19,17 +19,13 @@ declare global {
 	}
 }
 
-const SLOT_IDS = ["slot-1", "slot-2", "slot-3", "slot-4"];
-
 export const Route = createFileRoute("/")({
 	component: StreamingCodePage,
 });
 
 function StreamingCodePage() {
-	const reduceMotion = useReducedMotion();
 	const [started, setStarted] = useState(false);
 	const [code, setCode] = useState("----");
-	const [spinKey, setSpinKey] = useState(0);
 	const [siteKey, setSiteKey] = useState<string | undefined>(undefined);
 
 	// Turnstile state
@@ -39,7 +35,6 @@ function StreamingCodePage() {
 	const turnstileWidgetId = useRef<string | null>(null);
 	const turnstileRef = useRef<HTMLDivElement>(null);
 
-	const chars = useMemo(() => code.split(""), [code]);
 	const whipClient = useMemo(() => createWhipClient(), []);
 
 	const isButtonDisabled = !turnstileToken || isVerifying;
@@ -197,7 +192,6 @@ function StreamingCodePage() {
 
 		setStarted(true);
 		setCode(next);
-		setSpinKey((currentKey) => currentKey + 1);
 
 		// Keep UI identical to the reference: no visible copy toast.
 		// Provide SR-only feedback only.
@@ -211,49 +205,13 @@ function StreamingCodePage() {
 	return (
 		<div className="min-h-dvh bg-white grid place-items-center">
 			<div className="grid place-items-center gap-3">
-				{/* 4 slots */}
-				<div className="flex items-center gap-4" key={spinKey}>
-					{started ? (
-						SLOT_IDS.map((slotId, index) => (
-							<SlotReel
-								key={`${spinKey}-${slotId}`}
-								target={chars[index] ?? "-"}
-								delayMs={reduceMotion ? 0 : index * 30}
-								cellPx={48}
-								spinSteps={14 + index * 2}
-							/>
-						))
-					) : (
-						<>
-							<div className="size-12 rounded-lg border border-neutral-500/60 bg-white" />
-							<div className="size-12 rounded-lg border border-neutral-500/60 bg-white" />
-							<div className="size-12 rounded-lg border border-neutral-500/60 bg-white" />
-							<div className="size-12 rounded-lg border border-neutral-500/60 bg-white" />
-						</>
-					)}
-				</div>
+				<SlotDisplay started={started} code={code} />
 
-				{/* Button */}
-				<button
-					type="button"
-					onClick={onStart}
-					disabled={isButtonDisabled}
-					className={cn(
-						"w-60 rounded-md border border-neutral-500/60 bg-white px-4 py-1.5",
-						"text-xs text-neutral-800",
-						"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900",
-						"active:scale-[0.99] transition-transform",
-						"disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100",
-					)}
-				>
-					{isVerifying ? "認証中..." : "画面共有"}
-				</button>
+				<StartButton onStart={onStart} disabled={isButtonDisabled} />
 
-				{/* Turnstile widget */}
 				{siteKey && <div ref={turnstileRef} />}
 
-				{/* Error message */}
-				{verifyError && <p className="text-xs text-red-600">{verifyError}</p>}
+				<InlineMessage message={verifyError} className="text-xs text-red-600" />
 			</div>
 		</div>
 	);
