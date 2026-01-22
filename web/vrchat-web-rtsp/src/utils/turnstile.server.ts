@@ -7,6 +7,9 @@ import {
 } from "./types/turnstile";
 
 const secretKey = env.TURNSTILE_SECRET_KEY;
+if (!secretKey) {
+	throw new Error("TURNSTILE_SECRET_KEY is not configured");
+}
 export const TurnstileErrorCodeSchema = z.enum([
 	"missing-input-secret",
 	"invalid-input-secret",

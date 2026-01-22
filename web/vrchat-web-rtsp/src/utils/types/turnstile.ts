@@ -4,7 +4,7 @@ const successSchema = z.object({
 	success: z.literal(true),
 	challenge_ts: z.string(), // ISO8601 だけど string で十分なことが多い
 	hostname: z.string(),
-	"error-codes": z.array(z.string()),
+	"error-codes": z.array(z.string()).optional(),
 	action: z.string().optional(),
 	cdata: z.string().optional(),
 	metadata: z
