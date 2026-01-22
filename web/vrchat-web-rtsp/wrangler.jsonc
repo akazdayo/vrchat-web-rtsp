@@ -3,5 +3,13 @@
   "name": "tanstack-start-app",
   "compatibility_date": "2025-09-02",
   "compatibility_flags": ["nodejs_compat"],
-  "main": "@tanstack/react-start/server-entry"
+  "main": "@tanstack/react-start/server-entry",
+  "durable_objects": {
+    "bindings": [
+      { "name": "ROOM", "class_name": "Room" }
+    ]
+  },
+  "migrations": [
+    { "tag": "v1", "new_classes": ["Room"] }
+  ]
 }
