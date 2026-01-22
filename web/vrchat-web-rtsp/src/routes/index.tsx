@@ -1,4 +1,6 @@
+import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { InlineMessage } from "@/components/InlineMessage";
 import { SlotDisplay } from "@/components/SlotDisplay";
@@ -6,6 +8,7 @@ import { StartButton } from "@/components/StartButton";
 import { copyToClipboard } from "@/lib/clipboard";
 import { generateCode } from "@/lib/code-generator";
 import { createWhipClient, getMediamtxOutputUrl } from "@/lib/whip";
+import { verifySession } from "@/utils/newSession.functions";
 
 declare global {
 	interface Window {
@@ -117,16 +120,13 @@ function StreamingCodePage() {
 
 	async function verifyTurnstileToken(token: string): Promise<boolean> {
 		try {
-			const response = await fetch("/api/verify", {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify({ token }),
+			const verify = useServerFn(verifySession);
+			const { data } = useQuery({
+				queryKey: ["verify"],
+				queryFn: () => verify({ data: { token } }),
 			});
-
-			const result = await response.json();
-			return result.success === true;
+      console.log(`verify: ${data}`)
+			return data?.success === true;
 		} catch (error) {
 			console.error("Turnstile verification failed:", error);
 			return false;

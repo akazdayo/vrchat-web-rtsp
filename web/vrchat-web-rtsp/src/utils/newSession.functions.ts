@@ -7,7 +7,7 @@ const TurnStileInput = z.object({
 	token: z.string().max(2048),
 });
 
-export const startSession = createServerFn({ method: "POST" })
+export const verifySession = createServerFn({ method: "POST" })
 	.inputValidator(TurnStileInput)
 	.handler(async ({ data }) => {
 		const remoteip =
@@ -17,10 +17,12 @@ export const startSession = createServerFn({ method: "POST" })
 		const turnstileResult = await validateTurnstile(data.token, remoteip);
 
 		// エラーだった時にthrowする
-		turnstileResult.match(
+		const result = turnstileResult.match(
 			(ok) => ok,
 			(e) => {
 				throw e;
 			},
 		);
+
+		return result;
 	});
