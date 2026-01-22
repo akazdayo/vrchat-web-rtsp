@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import ScreenCaptureButton from "@/components/ScreenCaptureButton";
+import { Turnstile } from "@/components/Turnstile";
 
 export const Route = createFileRoute("/newPage")({
 	component: RouteComponent,
@@ -8,8 +9,16 @@ export const Route = createFileRoute("/newPage")({
 
 function RouteComponent() {
 	const [capture, setCapture] = useState<MediaStream | null>(null);
+	const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
 
-  return (
-    <ScreenCaptureButton setCapture={setCapture}/>
-  );
-};
+	return (
+		<div>
+			<ScreenCaptureButton setCapture={setCapture} />
+			<Turnstile
+				onSuccess={setTurnstileToken}
+				onExpired={() => setTurnstileToken(null)}
+			/>
+			<p>{turnstileToken ? "認証済み" : "認証してください"}</p>
+		</div>
+	);
+}
