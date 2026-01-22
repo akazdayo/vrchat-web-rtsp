@@ -125,7 +125,7 @@ function StreamingCodePage() {
 				queryKey: ["verify"],
 				queryFn: () => verify({ data: { token } }),
 			});
-      console.log(`verify: ${data}`)
+			console.log(`verify: ${data}`);
 			return data?.success === true;
 		} catch (error) {
 			console.error("Turnstile verification failed:", error);
