@@ -9,7 +9,7 @@ const successSchema = z.object({
 	cdata: z.string().optional(),
 	metadata: z
 		.object({
-			ephemeral_id: z.string(),
+			ephemeral_id: z.string().optional(),
 		})
 		.optional(),
 });
@@ -17,6 +17,11 @@ const successSchema = z.object({
 const failedSchema = z.object({
 	success: z.literal(false),
 	"error-codes": z.array(z.string()).min(1),
+	metadata: z
+		.object({
+			ephemeral_id: z.string().optional(),
+		})
+		.optional(),
 });
 
 export const turnstileResponseSchema = z.discriminatedUnion("success", [

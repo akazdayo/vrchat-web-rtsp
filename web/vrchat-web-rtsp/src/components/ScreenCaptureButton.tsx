@@ -1,6 +1,6 @@
 interface Props {
-  setCapture: React.Dispatch<React.SetStateAction<MediaStream | null>>
-};
+	setCapture: React.Dispatch<React.SetStateAction<MediaStream | null>>;
+}
 
 export default function ScreenCaptureButton(props: Props) {
 	const onClick = async () => {
