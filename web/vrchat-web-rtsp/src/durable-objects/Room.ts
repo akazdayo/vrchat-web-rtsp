@@ -1,29 +1,95 @@
 import { DurableObject } from "cloudflare:workers";
+import { zValidator } from "@hono/zod-validator";
+import { Hono } from "hono";
 import { err, ok, type Result } from "neverthrow";
-import { z } from "zod";
+import {
+	type durableObjectError,
+	type room,
+	type roomKey,
+	roomKeyParamSchema,
+	roomKeySchema,
+	roomSchema,
+	type roomValue,
+	roomValueSchema,
+} from "./Room.types";
 
-export const roomValueSchema = z.object({
-	createdAt: z.iso.datetime(),
-});
-export const roomKeySchema = z.string().length(4);
-
-export type roomValue = z.infer<typeof roomValueSchema>;
-export type roomKey = z.infer<typeof roomKeySchema>;
-
-export const roomSchema = z.object({
-	key: roomKeySchema,
-	value: roomValueSchema,
-});
-export type room = z.infer<typeof roomSchema>;
-
-export const durableObjectErrorSchema = z.enum([
-	"unavailable",
-	"internal-server-error",
-	"bad-request",
-]);
-export type durableObjectError = z.infer<typeof durableObjectErrorSchema>;
+type RoomState = DurableObject<Env>["ctx"];
+export type RoomStub = DurableObjectStub<Room>;
 
 export class Room extends DurableObject<Env> {
+	private readonly app: Hono;
+
+	constructor(ctx: RoomState, env: Env) {
+		super(ctx, env);
+
+		this.app = new Hono()
+			.get(
+				"/room/:key",
+				zValidator("param", roomKeyParamSchema, (result, c) => {
+					if (!result.success)
+						return c.json({ ok: false, error: "bad-request" }, 400);
+				}),
+				async (c) => {
+					const data = await this.ctx.storage.get(c.req.valid("param").key);
+					if (data === undefined)
+						return c.json({ ok: false, error: "unavailable" }, 404);
+
+					const validated = roomValueSchema.safeParse(data);
+					if (!validated.success)
+						return c.json({ ok: false, error: "internal-server-error" }, 500);
+
+					return c.json({ ok: true, value: validated.data }, 200);
+				},
+			)
+
+			.put(
+				"/room/:key",
+				zValidator("param", roomKeyParamSchema, (result, c) => {
+					if (!result.success)
+						return c.json({ ok: false, error: "bad-request" }, 400);
+				}),
+				zValidator("json", roomValueSchema, (result, c) => {
+					if (!result.success)
+						return c.json({ ok: false, error: "bad-request" }, 400);
+				}),
+				async (c) => {
+					const params = c.req.valid("param");
+					const value = c.req.valid("json");
+					await this.ctx.storage.put(params.key, value);
+					return c.json({ ok: true }, 200);
+				},
+			)
+
+			.delete(
+				"/room/:key",
+				zValidator("param", roomKeyParamSchema, (result, c) => {
+					if (!result.success)
+						return c.json({ ok: false, error: "bad-request" }, 400);
+				}),
+				async (c) => {
+					if (await this.ctx.storage.delete(c.req.valid("param").key))
+						return c.json({ ok: true }, 200);
+					return c.json({ ok: false, error: "unavailable" }, 404);
+				},
+			);
+	}
+
+	fetch(request: Request): Promise<Response> {
+		return Promise.resolve(this.app.fetch(request));
+	}
+}
+
+type RoomResponse<T = undefined> =
+	| { ok: true; value?: T }
+	| { ok: false; error: durableObjectError };
+
+export class RoomStore {
+	constructor(private readonly stub: RoomStub) {}
+
+	private createUrl(path: string): URL {
+		return new URL(path, "http://room");
+	}
+
 	async get(key: string): Promise<Result<roomValue, durableObjectError>> {
 		const parsed = roomKeySchema.safeParse(key);
 		if (parsed.success !== true) {
@@ -31,16 +97,19 @@ export class Room extends DurableObject<Env> {
 		}
 
 		try {
-			const data: any | undefined = await this.ctx.storage.get(parsed.data);
-			if (data === undefined) {
-				return err("unavailable");
-			}
-			const result = roomValueSchema.safeParse(data);
+			const response = await this.stub.fetch(
+				this.createUrl(`/room/${parsed.data}`),
+				{ method: "GET" },
+			);
+			const payload = (await response.json()) as RoomResponse<roomValue>;
 
-			if (result.success !== true) {
+			if (!payload.ok) {
+				return err(payload.error);
+			}
+			if (payload.value === undefined) {
 				return err("internal-server-error");
 			}
-			return ok(result.data);
+			return ok(payload.value);
 		} catch {
 			return err("internal-server-error");
 		}
@@ -55,7 +124,19 @@ export class Room extends DurableObject<Env> {
 		}
 
 		try {
-			await this.ctx.storage.delete(parsed.data);
+			const response = await this.stub.fetch(
+				this.createUrl(`/room/${parsed.data}`),
+				{ method: "DELETE" },
+			);
+			const payload = (await response.json()) as RoomResponse;
+
+			if (!payload.ok) {
+				return err(
+					payload.error === "unavailable"
+						? "internal-server-error"
+						: payload.error,
+				);
+			}
 			return ok();
 		} catch {
 			return err("internal-server-error");
@@ -71,7 +152,23 @@ export class Room extends DurableObject<Env> {
 		}
 
 		try {
-			await this.ctx.storage.put(parsed.data.key, parsed.data.value);
+			const response = await this.stub.fetch(
+				this.createUrl(`/room/${parsed.data.key}`),
+				{
+					method: "PUT",
+					headers: { "Content-Type": "application/json" },
+					body: JSON.stringify(parsed.data.value),
+				},
+			);
+			const payload = (await response.json()) as RoomResponse;
+
+			if (!payload.ok) {
+				return err(
+					payload.error === "unavailable"
+						? "internal-server-error"
+						: payload.error,
+				);
+			}
 			return ok();
 		} catch {
 			return err("internal-server-error");
