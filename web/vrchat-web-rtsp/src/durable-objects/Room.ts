@@ -1,15 +1,9 @@
 import { DurableObject } from "cloudflare:workers";
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
-import { err, ok, type Result } from "neverthrow";
 import {
 	type durableObjectError,
-	type room,
-	type roomKey,
 	roomKeyParamSchema,
-	roomKeySchema,
-	roomSchema,
-	type roomValue,
 	roomValueSchema,
 } from "./Room.types";
 
@@ -79,99 +73,6 @@ export class Room extends DurableObject<Env> {
 	}
 }
 
-type RoomResponse<T = undefined> =
+export type RoomResponse<T = undefined> =
 	| { ok: true; value?: T }
 	| { ok: false; error: durableObjectError };
-
-export class RoomStore {
-	constructor(private readonly stub: RoomStub) {}
-
-	private createUrl(path: string): URL {
-		return new URL(path, "http://room");
-	}
-
-	async get(key: string): Promise<Result<roomValue, durableObjectError>> {
-		const parsed = roomKeySchema.safeParse(key);
-		if (parsed.success !== true) {
-			return err("bad-request");
-		}
-
-		try {
-			const response = await this.stub.fetch(
-				this.createUrl(`/room/${parsed.data}`),
-				{ method: "GET" },
-			);
-			const payload = (await response.json()) as RoomResponse<roomValue>;
-
-			if (!payload.ok) {
-				return err(payload.error);
-			}
-			if (payload.value === undefined) {
-				return err("internal-server-error");
-			}
-			return ok(payload.value);
-		} catch {
-			return err("internal-server-error");
-		}
-	}
-
-	async remove(
-		key: roomKey,
-	): Promise<Result<void, Exclude<durableObjectError, "unavailable">>> {
-		const parsed = roomKeySchema.safeParse(key);
-		if (parsed.success !== true) {
-			return err("bad-request");
-		}
-
-		try {
-			const response = await this.stub.fetch(
-				this.createUrl(`/room/${parsed.data}`),
-				{ method: "DELETE" },
-			);
-			const payload = (await response.json()) as RoomResponse;
-
-			if (!payload.ok) {
-				return err(
-					payload.error === "unavailable"
-						? "internal-server-error"
-						: payload.error,
-				);
-			}
-			return ok();
-		} catch {
-			return err("internal-server-error");
-		}
-	}
-
-	async create(
-		data: room,
-	): Promise<Result<void, Exclude<durableObjectError, "unavailable">>> {
-		const parsed = roomSchema.safeParse(data);
-		if (parsed.success !== true) {
-			return err("bad-request");
-		}
-
-		try {
-			const response = await this.stub.fetch(
-				this.createUrl(`/room/${parsed.data.key}`),
-				{
-					method: "PUT",
-					headers: { "Content-Type": "application/json" },
-					body: JSON.stringify(parsed.data.value),
-				},
-			);
-			const payload = (await response.json()) as RoomResponse;
-
-			if (!payload.ok) {
-				return err(
-					payload.error === "unavailable"
-						? "internal-server-error"
-						: payload.error,
-				);
-			}
-			return ok();
-		} catch {
-			return err("internal-server-error");
-		}
-	}
-}
