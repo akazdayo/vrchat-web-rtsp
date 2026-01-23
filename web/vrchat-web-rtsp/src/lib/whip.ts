@@ -35,9 +35,7 @@ export function getMediamtxOutputUrl(path: string) {
 	return `${normalizeOutputBase(base)}/${path}`;
 }
 
-async function waitForIceGatheringComplete(
-	peerConnection: RTCPeerConnection,
-) {
+async function waitForIceGatheringComplete(peerConnection: RTCPeerConnection) {
 	if (peerConnection.iceGatheringState === "complete") {
 		return;
 	}
@@ -57,9 +55,7 @@ async function waitForIceGatheringComplete(
 	});
 }
 
-export function createWhipClient(
-	options: WhipClientOptions = {},
-): WhipClient {
+export function createWhipClient(options: WhipClientOptions = {}): WhipClient {
 	const whipEndpointBase = normalizeWhipEndpointBase(
 		options.endpointBase?.trim() ||
 			ENV_WHIP_ENDPOINT_BASE ||

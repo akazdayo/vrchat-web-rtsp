@@ -1,119 +1,76 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useReducedMotion } from "motion/react";
-import { useEffect, useMemo, useState } from "react";
-import { SlotReel } from "@/components/SlotReel";
-import { copyToClipboard } from "@/lib/clipboard";
-import { generateCode } from "@/lib/code-generator";
-import { createWhipClient, getMediamtxOutputUrl } from "@/lib/whip";
-import { cn } from "@/lib/utils";
-
-const SLOT_IDS = ["slot-1", "slot-2", "slot-3", "slot-4"];
+import { useEffect, useRef, useState } from "react";
+import ScreenCaptureButton from "@/components/ScreenCaptureButton";
+import { Turnstile } from "@/components/Turnstile";
+import {
+	createWhipClient,
+	getMediamtxOutputUrl,
+	type WhipClient,
+} from "@/lib/whip";
+import { verifySession } from "@/utils/newSession.functions";
 
 export const Route = createFileRoute("/")({
-	component: StreamingCodePage,
+	component: RouteComponent,
 });
 
-function StreamingCodePage() {
-	const reduceMotion = useReducedMotion();
-	const [started, setStarted] = useState(false);
-	const [code, setCode] = useState("----");
-	const [spinKey, setSpinKey] = useState(0);
+function RouteComponent() {
+	const [capture, setCapture] = useState<MediaStream | null>(null);
+	const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+	const [sessionCode, setSessionCode] = useState<string | null>(null);
+	const [failedTurnstile, setFailedTurnstile] = useState(false);
+	const [outputUrl, setOutputUrl] = useState<string | null>(null);
+	const whipClientRef = useRef<WhipClient | null>(null);
 
-	const chars = useMemo(() => code.split(""), [code]);
-	const whipClient = useMemo(() => createWhipClient(), []);
+	const handleSuccess = async (token: string) => {
+		try {
+			const code = await verifySession({ data: { token } });
+			setTurnstileToken(token);
+			setSessionCode(code);
+		} catch {
+			setFailedTurnstile(true);
+			console.error("Failed to turnstile authentication.");
+		}
+	};
 
 	useEffect(() => {
+		if (!capture || !sessionCode) {
+			return;
+		}
+
+		const client = createWhipClient();
+		whipClientRef.current = client;
+		setOutputUrl(getMediamtxOutputUrl(sessionCode));
+		void client.start(capture, sessionCode);
+
 		return () => {
-			void whipClient.stop();
+			void client.stop();
 		};
-	}, [whipClient]);
-
-	async function onStart() {
-		let screenShareMessage = "";
-		let stream: MediaStream | null = null;
-
-		if (navigator.mediaDevices?.getDisplayMedia) {
-			try {
-				stream = await navigator.mediaDevices.getDisplayMedia({
-					video: true,
-					audio: true,
-				});
-			} catch {
-				screenShareMessage = "Screen share canceled";
-			}
-		} else {
-			screenShareMessage = "Screen share not supported";
-		}
-
-		if (!stream) {
-			if (screenShareMessage) {
-				console.error(screenShareMessage);
-			}
-			return;
-		}
-
-		const next = generateCode(4);
-		const outputUrl = getMediamtxOutputUrl(next);
-
-		try {
-			await whipClient.start(stream, next);
-		} catch (error) {
-			console.error("Failed to publish via WHIP", error);
-			return;
-		}
-
-		setStarted(true);
-		setCode(next);
-		setSpinKey((currentKey) => currentKey + 1);
-
-		// Keep UI identical to the reference: no visible copy toast.
-		// Provide SR-only feedback only.
-		try {
-			await copyToClipboard(outputUrl);
-		} catch {
-			console.error("Copy failed");
-		}
-	}
+	}, [capture, sessionCode]);
 
 	return (
-		<div className="min-h-dvh bg-white grid place-items-center">
-			<div className="grid place-items-center gap-3">
-				{/* 4 slots */}
-				<div className="flex items-center gap-4" key={spinKey}>
-					{started ? (
-						SLOT_IDS.map((slotId, index) => (
-							<SlotReel
-								key={`${spinKey}-${slotId}`}
-								target={chars[index] ?? "-"}
-								delayMs={reduceMotion ? 0 : index * 30}
-								cellPx={48}
-								spinSteps={14 + index * 2}
-							/>
-						))
-					) : (
-						<>
-							<div className="size-12 rounded-lg border border-neutral-500/60 bg-white" />
-							<div className="size-12 rounded-lg border border-neutral-500/60 bg-white" />
-							<div className="size-12 rounded-lg border border-neutral-500/60 bg-white" />
-							<div className="size-12 rounded-lg border border-neutral-500/60 bg-white" />
-						</>
-					)}
-				</div>
+		<div>
+			<ScreenCaptureButton setCapture={setCapture} />
+			<Turnstile
+				onSuccess={handleSuccess}
+				onExpired={() => {
+					setTurnstileToken(null);
+					setSessionCode(null);
+					setOutputUrl(null);
+				}}
+			/>
+			{outputUrl ? (
+				<p>
+					配信URL: <a href={outputUrl}>{outputUrl}</a>
+				</p>
+			) : null}
 
-				{/* Button */}
-				<button
-					type="button"
-					onClick={onStart}
-					className={cn(
-						"w-60 rounded-md border border-neutral-500/60 bg-white px-4 py-1.5",
-						"text-xs text-neutral-800",
-						"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-900",
-						"active:scale-[0.99] transition-transform",
-					)}
-				>
-					画面共有
-				</button>
-			</div>
+			<p>
+				{failedTurnstile
+					? "認証に失敗しました"
+					: turnstileToken
+						? "認証済み"
+						: "認証中"}
+			</p>
 		</div>
 	);
 }

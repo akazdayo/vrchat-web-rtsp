@@ -6,7 +6,6 @@ import {
 	Scripts,
 } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
-import Header from "../components/Header";
 import TanStackQueryDevtools from "../integrations/tanstack-query/devtools";
 import appCss from "../styles.css?url";
 
@@ -33,6 +32,10 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 				rel: "stylesheet",
 				href: appCss,
 			},
+			{
+				rel: "preconnect",
+				href: "https://challenges.cloudflare.com",
+			},
 		],
 	}),
 
@@ -41,13 +44,17 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 
 function RootDocument({ children }: { children: React.ReactNode }) {
 	return (
-		<html lang="en">
+		<html lang="ja">
 			<head>
 				<HeadContent />
 			</head>
 			<body>
-				<Header />
 				{children}
+				<script
+					src="https://challenges.cloudflare.com/turnstile/v0/api.js"
+					async
+					defer
+				></script>
 				<TanStackDevtools
 					config={{
 						position: "bottom-right",
