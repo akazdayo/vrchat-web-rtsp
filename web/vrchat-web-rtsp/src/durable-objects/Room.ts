@@ -47,6 +47,7 @@ export class Room extends DurableObject<Env> {
 						return c.json({ ok: false, error: "bad-request" }, 400);
 				}),
 				async (c) => {
+					// TODO: 衝突チェックをする
 					const params = c.req.valid("param");
 					const value = c.req.valid("json");
 					await this.ctx.storage.put(params.key, value);

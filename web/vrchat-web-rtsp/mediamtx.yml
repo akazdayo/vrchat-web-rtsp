@@ -1,6 +1,12 @@
 webrtc: yes
 webrtcAddress: :8889
 webrtcEncryption: no
+authMethod: http
+authHTTPAddress: http://localhost:8787/api/mediamtx/auth
+authHTTPExclude:
+  - action: api
+  - action: metrics
+  - action: pprof
 paths:
   all_others:
     source: publisher
