@@ -10,7 +10,6 @@
       devShell = pkgs.mkShell {
         buildInputs = with pkgs; [
           bun
-          go
           nodejs_24
           mediamtx
         ];
