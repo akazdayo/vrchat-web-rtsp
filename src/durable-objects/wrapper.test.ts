@@ -76,5 +76,10 @@ describe("RoomStore", () => {
 		const removed = await store.remove(key);
 
 		expect(removed.isOk()).toBe(true);
+
+		const removedFetched = await store.get(key);
+
+		expect(removedFetched.isErr()).toBe(true);
+		expect(removedFetched._unsafeUnwrapErr()).toBe("unavailable");
 	});
 });
