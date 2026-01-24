@@ -1,0 +1,7 @@
+services:
+  mediamtx:
+    image: mediamtx:latest
+    ports:
+      - "8554:8554"
+      - "8889:8889"
+    restart: unless-stopped
