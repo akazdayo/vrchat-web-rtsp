@@ -33,6 +33,7 @@ export const verifySession = createServerFn({ method: "POST" })
 		turnstileResult.match(
 			(ok) => ok,
 			(e) => {
+				console.error(e);
 				throw e;
 			},
 		);
@@ -46,8 +47,8 @@ export const verifySession = createServerFn({ method: "POST" })
 			value: { createdAt: new Date().toISOString() },
 		});
 		if (created.isErr()) {
+			console.error(created.error);
 			throw created.error;
 		}
-
 		return code;
 	});
