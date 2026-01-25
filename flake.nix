@@ -11,7 +11,7 @@
     utils.lib.eachDefaultSystem (
       system:
       let
-        HOST = "http://host.docker.internal:8787";
+        HOST = "https://rtsp.odango.app";
 
         pkgs = nixpkgs.legacyPackages.${system};
         mediamtxConfig = pkgs.writeText "mediamtx.yml" ''
