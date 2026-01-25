@@ -18,19 +18,49 @@ vi.mock("cloudflare:workers", () => {
 });
 
 interface DurableObjectStorage {
-	get(key: string): Promise<roomValue | undefined>;
-	put(key: string, value: roomValue): Promise<void>;
-	delete(key: string): Promise<boolean>;
+	sql: {
+		exec(
+			query: string,
+			...bindings: unknown[]
+		): {
+			toArray(): Array<Record<string, unknown>>;
+			rowsWritten: number;
+		};
+	};
 }
 
 async function createRoomStub(): Promise<RoomStub> {
 	const data = new Map<string, roomValue>();
 	const storage: DurableObjectStorage = {
-		get: async (key: string) => data.get(key),
-		put: async (key: string, value: roomValue) => {
-			data.set(key, value);
+		sql: {
+			exec: (query: string, ...bindings: unknown[]) => {
+				if (query.startsWith("CREATE TABLE"))
+					return { toArray: () => [], rowsWritten: 0 };
+
+				if (query.startsWith("INSERT OR REPLACE")) {
+					const [key, createdAt] = bindings as [string, string];
+					data.set(key, { createdAt });
+					return { toArray: () => [], rowsWritten: 1 };
+				}
+
+				if (query.startsWith("SELECT")) {
+					const [key] = bindings as [string];
+					const value = data.get(key);
+					return {
+						toArray: () => (value ? [{ created_at: value.createdAt }] : []),
+						rowsWritten: 0,
+					};
+				}
+
+				if (query.startsWith("DELETE")) {
+					const [key] = bindings as [string];
+					const deleted = data.delete(key);
+					return { toArray: () => [], rowsWritten: deleted ? 1 : 0 };
+				}
+
+				return { toArray: () => [], rowsWritten: 0 };
+			},
 		},
-		delete: async (key: string) => data.delete(key),
 	};
 	const ctx = { storage };
 	const env = {} as Env;
