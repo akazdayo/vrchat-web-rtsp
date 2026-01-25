@@ -11,4 +11,10 @@
     "bindings": [{ "name": "ROOM", "class_name": "Room" }],
   },
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["Room"] }],
+  "routes": [
+    {
+      "pattern": "rtsp.odango.app",
+      "custom_domain": true,
+    },
+  ],
 }
