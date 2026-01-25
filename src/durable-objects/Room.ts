@@ -4,17 +4,30 @@ import { Hono } from "hono";
 import {
 	type durableObjectError,
 	roomKeyParamSchema,
+	type roomValue,
 	roomValueSchema,
 } from "./Room.types";
 
 type RoomState = DurableObject<Env>["ctx"];
+type SqlStorage = DurableObject<Env>["ctx"]["storage"]["sql"];
+type SqlStorageValue = ArrayBuffer | string | number | null;
 export type RoomStub = DurableObjectStub<Room>;
+
+type RoomRow = Record<string, SqlStorageValue> & {
+	created_at: string;
+};
 
 export class Room extends DurableObject<Env> {
 	private readonly app: Hono;
+	private readonly sql: SqlStorage;
 
 	constructor(ctx: RoomState, env: Env) {
 		super(ctx, env);
+
+		this.sql = ctx.storage.sql;
+		this.sql.exec(
+			"CREATE TABLE IF NOT EXISTS rooms (key TEXT PRIMARY KEY, created_at TEXT NOT NULL)",
+		);
 
 		this.app = new Hono()
 			.get(
@@ -24,11 +37,17 @@ export class Room extends DurableObject<Env> {
 						return c.json({ ok: false, error: "bad-request" }, 400);
 				}),
 				async (c) => {
-					const data = await this.ctx.storage.get(c.req.valid("param").key);
-					if (data === undefined)
-						return c.json({ ok: false, error: "unavailable" }, 404);
+					const key = c.req.valid("param").key;
+					const row = this.sql
+						.exec<RoomRow>("SELECT created_at FROM rooms WHERE key = ?", key)
+						.toArray()[0];
 
-					const validated = roomValueSchema.safeParse(data);
+					if (!row) return c.json({ ok: false, error: "unavailable" }, 404);
+
+					const candidate: roomValue = {
+						createdAt: row.created_at,
+					};
+					const validated = roomValueSchema.safeParse(candidate);
 					if (!validated.success)
 						return c.json({ ok: false, error: "internal-server-error" }, 500);
 
@@ -50,7 +69,12 @@ export class Room extends DurableObject<Env> {
 					// TODO: 衝突チェックをする
 					const params = c.req.valid("param");
 					const value = c.req.valid("json");
-					await this.ctx.storage.put(params.key, value);
+
+					this.sql.exec(
+						"INSERT OR REPLACE INTO rooms (key, created_at) VALUES (?, ?)",
+						params.key,
+						value.createdAt,
+					);
 					return c.json({ ok: true }, 200);
 				},
 			)
@@ -62,8 +86,9 @@ export class Room extends DurableObject<Env> {
 						return c.json({ ok: false, error: "bad-request" }, 400);
 				}),
 				async (c) => {
-					if (await this.ctx.storage.delete(c.req.valid("param").key))
-						return c.json({ ok: true }, 200);
+					const key = c.req.valid("param").key;
+					const result = this.sql.exec("DELETE FROM rooms WHERE key = ?", key);
+					if (result.rowsWritten > 0) return c.json({ ok: true }, 200);
 					return c.json({ ok: false, error: "unavailable" }, 404);
 				},
 			);
