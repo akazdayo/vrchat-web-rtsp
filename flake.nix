@@ -13,7 +13,10 @@
       let
         HOST = "https://rtsp.odango.app";
 
-        pkgs = nixpkgs.legacyPackages.${system};
+        pkgs = import nixpkgs {
+          inherit system;
+          config.allowUnfree = true;
+        };
         mediamtxConfig = pkgs.writeText "mediamtx.yml" ''
           webrtc: yes
           webrtcAddress: :8889
@@ -60,6 +63,7 @@
             bun
             nodejs_24
             mediamtx
+            terraform
           ];
         };
       }

@@ -18,3 +18,5 @@ todos.json
 result
 .localflare/
 .env.*
+**/.terraform/
+opencode.json
