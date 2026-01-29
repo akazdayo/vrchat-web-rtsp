@@ -35,5 +35,22 @@ module "droplet" {
   }
   vpc_uuid = var.vpc_uuid
 
-  enable_firewall = false
+  enable_firewall = true
+  inbound_rules = [
+    {
+      protocol      = "tcp"
+      allowed_ports = "22"
+      allowed_ip    = ["0.0.0.0/0", "::/0"]
+    },
+    {
+      protocol      = "tcp"
+      allowed_ports = "8889"
+      allowed_ip    = ["0.0.0.0/0", "::/0"]
+    },
+    {
+      protocol      = "tcp"
+      allowed_ports = "8554"
+      allowed_ip    = ["0.0.0.0/0", "::/0"]
+    },
+  ]
 }
