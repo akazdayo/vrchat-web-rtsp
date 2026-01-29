@@ -34,6 +34,7 @@ bun run check            # lint + format
 bun run test             # run all tests
 bunx vitest run path/to/file.test.ts
 bunx vitest run -t "test name"
+bunx vitest run --coverage
 bunx vitest --watch
 # Deployment
 bun run deploy           # build + wrangler deploy
@@ -114,6 +115,7 @@ export const verifySession = createServerFn({ method: "POST" })
 - Use `Result` for fallible operations
 - Return `ok()` for success, `err()` for failure
 - Handle results with `.match()`
+- Avoid throwing across module boundaries unless integrating with library APIs
 
 ### Routing (TanStack Router)
 - Routes live in `src/routes/`
@@ -123,6 +125,15 @@ export const verifySession = createServerFn({ method: "POST" })
 ### Styling
 - Tailwind utility classes, DaisyUI components
 - Prefer `className`, avoid inline styles
+- Use Motion for animation (fade/slide variants are favored)
+
+### Data Fetching
+- Prefer TanStack React Query for async data and caching
+- Use `neverthrow` results in query functions and map to UI states
+
+### Files and Generated Artifacts
+- Do not edit generated files (`src/routeTree.gen.ts`, `src/styles.css`)
+- Keep deployment output (`dist/`, `.wrangler/`, `.tanstack/`) out of commits
 
 ## Environment Variables
 ```bash
