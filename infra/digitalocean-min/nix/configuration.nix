@@ -7,6 +7,7 @@
 {
   imports = [
     (modulesPath + "/virtualisation/digital-ocean-config.nix")
+    ./caddy.nix
     ./mediamtx.nix
   ];
 

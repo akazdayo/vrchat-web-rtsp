@@ -44,7 +44,12 @@ module "droplet" {
     },
     {
       protocol      = "tcp"
-      allowed_ports = "8889"
+      allowed_ports = "80"
+      allowed_ip    = ["0.0.0.0/0", "::/0"]
+    },
+    {
+      protocol      = "tcp"
+      allowed_ports = "443"
       allowed_ip    = ["0.0.0.0/0", "::/0"]
     },
     {

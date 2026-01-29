@@ -15,14 +15,13 @@
       in
       {
         networking.firewall.allowedTCPPorts = [
-          8889
           8554
         ];
         services.mediamtx = {
           enable = true;
           settings = {
             webrtc = true;
-            webrtcAddress = ":8889";
+            webrtcAddress = "127.0.0.1:8889";
             webrtcEncryption = true;
 
             rtspAddress = ":8554";
