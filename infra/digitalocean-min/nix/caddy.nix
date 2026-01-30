@@ -13,6 +13,14 @@
     autoStart = true;
     privateNetwork = false;
 
+    forwardPorts = [
+      {
+        protocol = "tcp";
+        hostPort = 8889;
+        containerPort = 8889;
+      }
+    ];
+
     bindMounts."/var/lib/caddy" = {
       hostPath = "/var/lib/caddy-webrtc";
       isReadOnly = false;
@@ -23,10 +31,14 @@
       {
         services.caddy = {
           enable = true;
+          globalConfig = ''
+            auto_https disable_redirects
+          '';
           dataDir = "/var/lib/caddy";
           virtualHosts."webrtc.odango.app" = {
             extraConfig = ''
-              reverse_proxy 127.0.0.1:8889
+              tls /var/lib/caddy/origin-cert.pem /var/lib/caddy/origin-key.pem
+              reverse_proxy 10.104.0.2:8889
             '';
           };
         };

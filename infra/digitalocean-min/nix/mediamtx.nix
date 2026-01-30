@@ -21,8 +21,9 @@
           enable = true;
           settings = {
             webrtc = true;
-            webrtcAddress = "127.0.0.1:8889";
-            webrtcEncryption = true;
+            webrtcAddress = "0.0.0.0:8889";
+            webrtcEncryption = false;
+            webrtcAllowOrigin = "https://rtsp.odango.app";
 
             rtspAddress = ":8554";
 
