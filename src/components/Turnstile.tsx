@@ -50,5 +50,5 @@ export function Turnstile({ onSuccess, onExpired }: TurnstileProps) {
 	}, [onSuccess, onExpired]);
 
 	if (!siteKey) return null;
-	return <div ref={ref} />;
+	return <div ref={ref} data-size="normal"/>;
 }
