@@ -11,59 +11,18 @@
     utils.lib.eachDefaultSystem (
       system:
       let
-        HOST = "https://rtsp.odango.app";
-
         pkgs = import nixpkgs {
           inherit system;
           config.allowUnfree = true;
         };
-        mediamtxConfig = pkgs.writeText "mediamtx.yml" ''
-          webrtc: yes
-          webrtcAddress: :8889
-          webrtcEncryption: no
-          rtspAddress: :8554
-          authMethod: http
-          authHTTPAddress: ${HOST}/api/mediamtx/auth
-          paths:
-            all_others:
-              source: publisher
-        '';
-
-        mediamtxImage = pkgs.dockerTools.buildImage {
-          name = "mediamtx";
-          tag = "latest";
-          copyToRoot = pkgs.buildEnv {
-            name = "mediamtx-root";
-            paths = [
-              pkgs.mediamtx
-            ];
-            pathsToLink = [
-              "/bin"
-            ];
-          };
-          config = {
-            Cmd = [
-              "/bin/mediamtx"
-              "${mediamtxConfig}"
-            ];
-            ExposedPorts = {
-              "8554/tcp" = { };
-              "8889/tcp" = { };
-            };
-
-          };
-        };
-      in
-      {
-        packages = {
-          mediamtx-image = mediamtxImage;
-        };
+      in {
         devShell = pkgs.mkShell {
           buildInputs = with pkgs; [
             bun
             nodejs_24
             mediamtx
             terraform
+            cf-terraforming
           ];
         };
       }
