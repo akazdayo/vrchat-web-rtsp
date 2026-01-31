@@ -3,7 +3,7 @@ webrtcAddress: :8889
 webrtcEncryption: no
 rtspAddress: :8554
 authMethod: http
-authHTTPAddress: https://rtsp.odango.app/api/mediamtx/auth
+authHTTPAddress: http://localhost:8787/api/mediamtx/auth
 paths:
   all_others:
     source: publisher
