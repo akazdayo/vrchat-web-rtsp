@@ -67,4 +67,4 @@ terraform.rc
 # planout
 
 
-.dev.vars.*
+.dev.vars*

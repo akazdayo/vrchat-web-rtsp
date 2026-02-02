@@ -22,11 +22,11 @@ function RouteComponent() {
 	const whipClientRef = useRef<WhipClient | null>(null);
 
 	const handleSuccess = async (token: string) => {
-		try {
-			const code = await verifySession({ data: { token } });
+		const result = await verifySession({ data: { token } });
+		if (result.success) {
 			setTurnstileToken(token);
-			setSessionCode(code);
-		} catch {
+			setSessionCode(result.code);
+		} else {
 			setFailedTurnstile(true);
 			console.error("Failed to turnstile authentication.");
 		}
