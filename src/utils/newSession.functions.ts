@@ -31,7 +31,7 @@ export const verifySession = createServerFn({ method: "POST" })
 
 		if (turnstileResult.isErr()) {
 			console.error(turnstileResult.error);
-			return { success: false, code: "" };
+			return { success: false, error: turnstileResult.error };
 		}
 
 		const code = generateRandomCode();
@@ -44,7 +44,7 @@ export const verifySession = createServerFn({ method: "POST" })
 		});
 		if (created.isErr()) {
 			console.error(created.error);
-			return { success: false, code: "" };
+			return { success: false, error: created.error };
 		}
 		return { success: true, code };
 	});
