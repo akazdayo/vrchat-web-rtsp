@@ -18,17 +18,21 @@ function RouteComponent() {
 	const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
 	const [sessionCode, setSessionCode] = useState<string | null>(null);
 	const [failedTurnstile, setFailedTurnstile] = useState(false);
+	const [turnstileError, setTurnstileError] = useState<string | null>(null);
 	const [outputUrl, setOutputUrl] = useState<string | null>(null);
 	const whipClientRef = useRef<WhipClient | null>(null);
 
 	const handleSuccess = async (token: string) => {
-		try {
-			const code = await verifySession({ data: { token } });
+		const result = await verifySession({ data: { token } });
+		if (result.success) {
 			setTurnstileToken(token);
-			setSessionCode(code);
-		} catch {
+			setSessionCode(result.code);
+			setFailedTurnstile(false);
+			setTurnstileError(null);
+		} else {
 			setFailedTurnstile(true);
-			console.error("Failed to turnstile authentication.");
+			setTurnstileError(result.error ?? null);
+			console.error("Failed to turnstile authentication.", result.error);
 		}
 	};
 
@@ -56,6 +60,8 @@ function RouteComponent() {
 					setTurnstileToken(null);
 					setSessionCode(null);
 					setOutputUrl(null);
+					setFailedTurnstile(false);
+					setTurnstileError(null);
 				}}
 			/>
 			{outputUrl ? (
@@ -66,7 +72,9 @@ function RouteComponent() {
 
 			<p>
 				{failedTurnstile
-					? "認証に失敗しました"
+					? turnstileError
+						? `認証に失敗しました (${turnstileError})`
+						: "認証に失敗しました"
 					: turnstileToken
 						? "認証済み"
 						: "認証中"}

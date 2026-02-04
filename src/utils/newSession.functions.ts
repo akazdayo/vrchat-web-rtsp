@@ -29,14 +29,10 @@ export const verifySession = createServerFn({ method: "POST" })
 			undefined;
 		const turnstileResult = await validateTurnstile(data.token, remoteip);
 
-		// エラーだった時にthrowする
-		turnstileResult.match(
-			(ok) => ok,
-			(e) => {
-				console.error(e);
-				throw e;
-			},
-		);
+		if (turnstileResult.isErr()) {
+			console.error(turnstileResult.error);
+			return { success: false, error: turnstileResult.error };
+		}
 
 		const code = generateRandomCode();
 		const roomStore = new RoomStore(
@@ -48,7 +44,7 @@ export const verifySession = createServerFn({ method: "POST" })
 		});
 		if (created.isErr()) {
 			console.error(created.error);
-			throw created.error;
+			return { success: false, error: created.error };
 		}
-		return code;
+		return { success: true, code };
 	});
