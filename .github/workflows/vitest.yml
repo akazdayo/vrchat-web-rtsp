@@ -23,4 +23,4 @@ jobs:
       - name: Build
         run: bun run build
       - name: Run Vitest
-        run: bun run test
+        run: bun run test:workers

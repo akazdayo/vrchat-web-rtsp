@@ -6,12 +6,15 @@ const ENV_MEDIAMTX_OUTPUT_BASE =
 
 type WhipClientOptions = {
 	endpointBase?: string;
+	connectionTimeoutMs?: number;
 };
 
 export type WhipClient = {
 	start: (stream: MediaStream, path: string) => Promise<void>;
 	stop: () => Promise<void>;
 };
+
+const DEFAULT_CONNECTION_TIMEOUT_MS = 15_000;
 
 function normalizeWhipEndpointBase(value: string) {
 	try {
@@ -55,19 +58,100 @@ async function waitForIceGatheringComplete(peerConnection: RTCPeerConnection) {
 	});
 }
 
+function isConnectionReady(peerConnection: RTCPeerConnection) {
+	return (
+		peerConnection.connectionState === "connected" ||
+		peerConnection.iceConnectionState === "connected" ||
+		peerConnection.iceConnectionState === "completed"
+	);
+}
+
+function isConnectionFailed(peerConnection: RTCPeerConnection) {
+	return (
+		peerConnection.connectionState === "failed" ||
+		peerConnection.connectionState === "closed" ||
+		peerConnection.iceConnectionState === "failed" ||
+		peerConnection.iceConnectionState === "closed"
+	);
+}
+
+async function waitForConnectionReady(
+	peerConnection: RTCPeerConnection,
+	timeoutMs: number,
+) {
+	if (isConnectionReady(peerConnection)) {
+		return;
+	}
+
+	await new Promise<void>((resolve, reject) => {
+		const cleanup = () => {
+			clearTimeout(timeoutId);
+			peerConnection.removeEventListener(
+				"connectionstatechange",
+				onStateChange,
+			);
+			peerConnection.removeEventListener(
+				"iceconnectionstatechange",
+				onStateChange,
+			);
+		};
+
+		const onStateChange = () => {
+			if (isConnectionReady(peerConnection)) {
+				cleanup();
+				resolve();
+				return;
+			}
+
+			if (isConnectionFailed(peerConnection)) {
+				cleanup();
+				reject(
+					new Error(
+						`WHIP connection failed (${peerConnection.connectionState}/${peerConnection.iceConnectionState})`,
+					),
+				);
+			}
+		};
+
+		const timeoutId = setTimeout(() => {
+			cleanup();
+			reject(
+				new Error(
+					`WHIP connection timed out after ${timeoutMs}ms before media became active`,
+				),
+			);
+		}, timeoutMs);
+
+		peerConnection.addEventListener("connectionstatechange", onStateChange);
+		peerConnection.addEventListener("iceconnectionstatechange", onStateChange);
+		onStateChange();
+	});
+}
+
 export function createWhipClient(options: WhipClientOptions = {}): WhipClient {
 	const whipEndpointBase = normalizeWhipEndpointBase(
 		options.endpointBase?.trim() ||
 			ENV_WHIP_ENDPOINT_BASE ||
 			DEFAULT_WHIP_ENDPOINT_BASE,
 	);
+	const connectionTimeoutMs =
+		options.connectionTimeoutMs ?? DEFAULT_CONNECTION_TIMEOUT_MS;
 	let peerConnection: RTCPeerConnection | null = null;
 	let whipResourceUrl: string | null = null;
 	let activeStream: MediaStream | null = null;
+	let trackedTracks: Array<{
+		track: MediaStreamTrack;
+		listener: EventListener;
+	}> = [];
 
 	const stop = async () => {
 		const currentPeerConnection = peerConnection;
 		peerConnection = null;
+
+		for (const { track, listener } of trackedTracks) {
+			track.removeEventListener?.("ended", listener);
+		}
+		trackedTracks = [];
 
 		if (currentPeerConnection) {
 			currentPeerConnection.getSenders().forEach((sender) => {
@@ -114,6 +198,8 @@ export function createWhipClient(options: WhipClientOptions = {}): WhipClient {
 
 		stream.getTracks().forEach((track) => {
 			connection.addTrack(track, stream);
+			const listener: EventListener = onTrackEnded;
+			trackedTracks.push({ track, listener });
 			track.addEventListener("ended", onTrackEnded);
 		});
 
@@ -151,6 +237,7 @@ export function createWhipClient(options: WhipClientOptions = {}): WhipClient {
 				type: "answer",
 				sdp: answerSdp,
 			});
+			await waitForConnectionReady(connection, connectionTimeoutMs);
 		} catch (error) {
 			await stop();
 			throw error;

@@ -16,6 +16,10 @@
       {
         networking.firewall.allowedTCPPorts = [
           8554
+          8189
+        ];
+        networking.firewall.allowedUDPPorts = [
+          8189
         ];
         services.mediamtx = {
           enable = true;
@@ -24,6 +28,9 @@
             webrtcAddress = "0.0.0.0:8889";
             webrtcEncryption = false;
             webrtcAllowOrigin = "https://rtsp.odango.app";
+            webrtcLocalUDPAddress = ":8189";
+            webrtcLocalTCPAddress = ":8189";
+            webrtcAdditionalHosts = [ "webrtc.odango.app" ];
 
             rtspAddress = ":8554";
 

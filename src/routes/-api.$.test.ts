@@ -22,7 +22,6 @@ vi.mock("cloudflare:workers", () => ({
 
 vi.mock("@/durable-objects/wrapper", () => ({
 	RoomStore: class {
-		constructor(_stub: unknown) {}
 		get = getMock;
 		remove = removeMock;
 	},
@@ -84,7 +83,6 @@ const publishPayload = (path: string): { action: string; path: string } => ({
 beforeEach(() => {
 	getMock.mockReset();
 	removeMock.mockReset();
-	vi.spyOn(console, "log").mockImplementation(() => {});
 });
 
 afterEach(() => {

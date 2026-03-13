@@ -57,5 +57,15 @@ module "droplet" {
       allowed_ports = "8554"
       allowed_ip    = ["0.0.0.0/0", "::/0"]
     },
+    {
+      protocol      = "tcp"
+      allowed_ports = "8189"
+      allowed_ip    = ["0.0.0.0/0", "::/0"]
+    },
+    {
+      protocol      = "udp"
+      allowed_ports = "8189"
+      allowed_ip    = ["0.0.0.0/0", "::/0"]
+    },
   ]
 }

@@ -1,12 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import ScreenCaptureButton from "@/components/ScreenCaptureButton";
 import { Turnstile } from "@/components/Turnstile";
-import {
-	createWhipClient,
-	getMediamtxOutputUrl,
-	type WhipClient,
-} from "@/lib/whip";
+import { createWhipClient, getMediamtxOutputUrl } from "@/lib/whip";
 import { verifySession } from "@/utils/newSession.functions";
 
 export const Route = createFileRoute("/")({
@@ -20,7 +16,10 @@ function RouteComponent() {
 	const [failedTurnstile, setFailedTurnstile] = useState(false);
 	const [turnstileError, setTurnstileError] = useState<string | null>(null);
 	const [outputUrl, setOutputUrl] = useState<string | null>(null);
-	const whipClientRef = useRef<WhipClient | null>(null);
+	const [broadcastState, setBroadcastState] = useState<
+		"idle" | "connecting" | "live" | "error"
+	>("idle");
+	const [broadcastError, setBroadcastError] = useState<string | null>(null);
 
 	const handleSuccess = async (token: string) => {
 		const result = await verifySession({ data: { token } });
@@ -37,16 +36,68 @@ function RouteComponent() {
 	};
 
 	useEffect(() => {
+		if (!capture) {
+			return;
+		}
+
+		const onTrackEnded = () => {
+			setCapture(null);
+			setOutputUrl(null);
+			setBroadcastError(null);
+			setBroadcastState("idle");
+		};
+
+		capture.getTracks().forEach((track) => {
+			track.addEventListener("ended", onTrackEnded);
+		});
+
+		return () => {
+			capture.getTracks().forEach((track) => {
+				track.removeEventListener?.("ended", onTrackEnded);
+			});
+		};
+	}, [capture]);
+
+	useEffect(() => {
 		if (!capture || !sessionCode) {
+			setOutputUrl(null);
+			setBroadcastError(null);
+			setBroadcastState("idle");
 			return;
 		}
 
 		const client = createWhipClient();
-		whipClientRef.current = client;
-		setOutputUrl(getMediamtxOutputUrl(sessionCode));
-		void client.start(capture, sessionCode);
+		let cancelled = false;
+
+		setBroadcastState("connecting");
+		setBroadcastError(null);
+		setOutputUrl(null);
+
+		void (async () => {
+			try {
+				await client.start(capture, sessionCode);
+				if (cancelled) {
+					return;
+				}
+
+				setOutputUrl(getMediamtxOutputUrl(sessionCode));
+				setBroadcastState("live");
+			} catch (error) {
+				if (cancelled) {
+					return;
+				}
+
+				console.error("Failed to start WHIP broadcast.", error);
+				setOutputUrl(null);
+				setBroadcastState("error");
+				setBroadcastError(
+					error instanceof Error ? error.message : "配信開始に失敗しました",
+				);
+			}
+		})();
 
 		return () => {
+			cancelled = true;
 			void client.stop();
 		};
 	}, [capture, sessionCode]);
@@ -60,6 +111,8 @@ function RouteComponent() {
 					setTurnstileToken(null);
 					setSessionCode(null);
 					setOutputUrl(null);
+					setBroadcastError(null);
+					setBroadcastState("idle");
 					setFailedTurnstile(false);
 					setTurnstileError(null);
 				}}
@@ -78,6 +131,19 @@ function RouteComponent() {
 					: turnstileToken
 						? "認証済み"
 						: "認証中"}
+			</p>
+			<p>
+				{broadcastState === "connecting"
+					? "配信接続中"
+					: broadcastState === "live"
+						? "配信中"
+						: broadcastState === "error"
+							? broadcastError
+								? `配信エラー (${broadcastError})`
+								: "配信エラー"
+							: capture && sessionCode
+								? "配信待機中"
+								: "未配信"}
 			</p>
 		</div>
 	);
