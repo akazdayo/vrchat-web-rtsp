@@ -63,7 +63,7 @@ pnpm run check
 pnpm run build
 pnpm run test
 pnpm run test:workers
-pnpm run wrangler types
+pnpm run types
 pnpm run deploy
 ```
 
@@ -75,5 +75,5 @@ pnpm run deploy
   - `infra/cloudflare/AGENTS.md`
   - `infra/digitalocean-min/AGENTS.md`
   - `infra/digitalocean-min/nix/AGENTS.md`
-- CI sequence: install (`--frozen-lockfile`) -> `wrangler types` -> build -> test.
+- CI sequence: install (`--frozen-lockfile`) -> `pnpm run types` -> build -> test.
 - LSP symbol server was unavailable in this environment; code-map decisions use grep + AST + explore evidence.
