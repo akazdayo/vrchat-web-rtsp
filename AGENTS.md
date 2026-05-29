@@ -40,7 +40,7 @@ vrchat-web-rtsp/
 
 ## CONVENTIONS
 - Biome is the only formatter/linter (`biome.json`), with tabs and double quotes.
-- Local `bun run test` uses Vitest threads for stability; CI keeps Cloudflare Workers pool coverage via `bun run test:workers`.
+- Local `pnpm run test` uses Vitest threads for stability; CI keeps Cloudflare Workers pool coverage via `pnpm run test:workers`.
 - Path alias is `@/* -> src/*` in TS, Vite, and Vitest.
 - Wrangler deploys worker code; Terraform manages infra-side resources.
 
@@ -57,14 +57,14 @@ vrchat-web-rtsp/
 
 ## COMMANDS
 ```bash
-bun install
-bun run dev
-bun run check
-bun run build
-bun run test
-bun run test:workers
-bun run wrangler types
-bun run deploy
+pnpm install
+pnpm run dev
+pnpm run check
+pnpm run build
+pnpm run test
+pnpm run test:workers
+pnpm run wrangler types
+pnpm run deploy
 ```
 
 ## NOTES
