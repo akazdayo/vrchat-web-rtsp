@@ -18,12 +18,18 @@ interface TurnstileProps {
 }
 
 const siteKey = import.meta.env.VITE_SITE_KEY;
+const devSkip = import.meta.env.VITE_DEV_SKIP_TURNSTILE === "true";
 
 export function Turnstile({ onSuccess, onExpired }: TurnstileProps) {
 	const ref = useRef<HTMLDivElement>(null);
 	const widgetId = useRef<string | null>(null);
 
 	useEffect(() => {
+		if (devSkip) {
+			onSuccess("dev-token");
+			return;
+		}
+
 		if (!siteKey || !ref.current) return;
 
 		const render = () => {
@@ -48,6 +54,10 @@ export function Turnstile({ onSuccess, onExpired }: TurnstileProps) {
 			return () => clearInterval(id);
 		}
 	}, [onSuccess, onExpired]);
+
+	if (devSkip) {
+		return <p>開発モード: Turnstile をスキップ</p>;
+	}
 
 	if (!siteKey) return null;
 	return <div ref={ref} data-size="normal" />;

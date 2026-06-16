@@ -2,13 +2,16 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { TurnstileResponse } from "@/utils/types/turnstile";
 
-vi.mock("cloudflare:workers", () => ({
-	env: {
-		TURNSTILE_SECRET_KEY: "test-secret",
-	},
-}));
+const envMock: {
+	TURNSTILE_SECRET_KEY?: string;
+	DEV_SKIP_TURNSTILE?: string;
+} = {
+	TURNSTILE_SECRET_KEY: "test-secret",
+};
 
-const { validateTurnstile } = await import("@/utils/turnstile.server");
+vi.mock("cloudflare:workers", () => ({
+	env: envMock,
+}));
 
 const TURNSTILE_URL =
 	"https://challenges.cloudflare.com/turnstile/v0/siteverify";
@@ -52,10 +55,18 @@ const getFormData = (fetchMock: FetchMock): FormData => {
 afterEach(() => {
 	globalThis.fetch = originalFetch;
 	vi.restoreAllMocks();
+	envMock.TURNSTILE_SECRET_KEY = "test-secret";
+	delete envMock.DEV_SKIP_TURNSTILE;
 });
+
+const loadValidateTurnstile = async () => {
+	const { validateTurnstile } = await import("@/utils/turnstile.server");
+	return validateTurnstile;
+};
 
 describe("validateTurnstile", () => {
 	it("returns ok on success", async () => {
+		const validateTurnstile = await loadValidateTurnstile();
 		const successData: TurnstileResponse = {
 			success: true,
 			challenge_ts: "2024-01-01T00:00:00Z",
@@ -81,6 +92,7 @@ describe("validateTurnstile", () => {
 	});
 
 	it("returns error code when turnstile fails", async () => {
+		const validateTurnstile = await loadValidateTurnstile();
 		const fetchMock = setFetchResponse({
 			success: false,
 			"error-codes": ["timeout-or-duplicate"],
@@ -102,6 +114,7 @@ describe("validateTurnstile", () => {
 	});
 
 	it("returns internal-error for unknown error codes", async () => {
+		const validateTurnstile = await loadValidateTurnstile();
 		setFetchResponse({
 			success: false,
 			"error-codes": ["unsupported-code"],
@@ -120,6 +133,7 @@ describe("validateTurnstile", () => {
 	});
 
 	it("returns internal-error when response schema is invalid", async () => {
+		const validateTurnstile = await loadValidateTurnstile();
 		const consoleSpy = vi.spyOn(console, "log").mockImplementation(() => {});
 		setFetchResponse({
 			message: "invalid",
@@ -134,6 +148,41 @@ describe("validateTurnstile", () => {
 			},
 			(error) => {
 				expect(error).toBe("internal-error");
+			},
+		);
+	});
+
+	it("returns mock success when dev skip is enabled", async () => {
+		envMock.DEV_SKIP_TURNSTILE = "true";
+		const validateTurnstile = await loadValidateTurnstile();
+
+		const result = await validateTurnstile("any-token", undefined);
+
+		result.match(
+			(data) => {
+				expect(data.success).toBe(true);
+				if (data.success) {
+					expect(data.hostname).toBe("localhost");
+				}
+			},
+			() => {
+				throw new Error("expected ok");
+			},
+		);
+	});
+
+	it("returns missing-input-secret when secret is not configured", async () => {
+		delete envMock.TURNSTILE_SECRET_KEY;
+		const validateTurnstile = await loadValidateTurnstile();
+
+		const result = await validateTurnstile("token", undefined);
+
+		result.match(
+			() => {
+				throw new Error("expected error");
+			},
+			(error) => {
+				expect(error).toBe("missing-input-secret");
 			},
 		);
 	});

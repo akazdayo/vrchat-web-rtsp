@@ -20,4 +20,6 @@ services:
     environment:
       - TURNSTILE_SECRET_KEY=${TURNSTILE_SECRET_KEY:-}
       - VITE_SITE_KEY=${VITE_SITE_KEY:-}
+      - DEV_SKIP_TURNSTILE=${DEV_SKIP_TURNSTILE:-true}
+      - VITE_DEV_SKIP_TURNSTILE=${VITE_DEV_SKIP_TURNSTILE:-true}
     restart: unless-stopped

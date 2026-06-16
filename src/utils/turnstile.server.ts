@@ -1,4 +1,4 @@
-import { env } from "cloudflare:workers";
+import { env as cloudflareEnv } from "cloudflare:workers";
 import { err, ok, type Result } from "neverthrow";
 import { z } from "zod";
 import {
@@ -6,10 +6,6 @@ import {
 	turnstileResponseSchema,
 } from "./types/turnstile";
 
-const secretKey = env.TURNSTILE_SECRET_KEY;
-if (!secretKey) {
-	throw new Error("TURNSTILE_SECRET_KEY is not configured");
-}
 export const TurnstileErrorCodeSchema = z.enum([
 	"missing-input-secret",
 	"invalid-input-secret",
@@ -21,10 +17,37 @@ export const TurnstileErrorCodeSchema = z.enum([
 ]);
 type ErrorCode = z.infer<typeof TurnstileErrorCodeSchema>;
 
+type TurnstileEnv = {
+	TURNSTILE_SECRET_KEY?: string;
+	DEV_SKIP_TURNSTILE?: string;
+};
+
+const env = cloudflareEnv as TurnstileEnv;
+
+const DEV_MOCK_RESPONSE: TurnstileResponse = {
+	success: true,
+	challenge_ts: new Date().toISOString(),
+	hostname: "localhost",
+};
+
+function isDevSkipEnabled(): boolean {
+	return env.DEV_SKIP_TURNSTILE === "true";
+}
+
 export async function validateTurnstile(
 	token: string,
 	remoteip: string | undefined,
 ): Promise<Result<TurnstileResponse, ErrorCode>> {
+	if (isDevSkipEnabled()) {
+		return ok(DEV_MOCK_RESPONSE);
+	}
+
+	const secretKey = env.TURNSTILE_SECRET_KEY;
+	if (!secretKey) {
+		console.error("TURNSTILE_SECRET_KEY is not configured");
+		return err("missing-input-secret");
+	}
+
 	const formData = new FormData();
 	formData.append("secret", secretKey);
 	formData.append("response", token);
