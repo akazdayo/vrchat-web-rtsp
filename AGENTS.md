@@ -15,13 +15,11 @@ vrchat-web-rtsp/
 │   ├── routes/                        # File routes + embedded /api handlers
 │   ├── durable-objects/               # Room Durable Object + wrapper contract
 │   └── utils/                         # Server functions + Turnstile integration
-├── infra/
-│   ├── cloudflare/                    # Terraform for domain binding + Turnstile
-│   └── digitalocean-min/              # Terraform droplet/firewall + Nix handoff
-│       └── nix/                       # NixOS container config (MediaMTX/Caddy)
+├── docs/
+│   └── deployment-contract.md         # Contract expected by external infra
 ├── wrangler.jsonc                     # Worker entrypoint + DO binding + route
-├── mediamtx.yml                       # Local MediaMTX config
-└── docker-compose.yml                 # Local MediaMTX runtime
+├── mediamtx.yml                       # Local dev MediaMTX config
+└── docker-compose.yml                 # Local dev runtime
 ```
 
 ## WHERE TO LOOK
@@ -35,19 +33,18 @@ vrchat-web-rtsp/
 | Session creation server fn | `src/utils/newSession.functions.ts` | `createServerFn` + room creation |
 | Turnstile verification | `src/utils/turnstile.server.ts` | Secret/env + error mapping |
 | Worker runtime/deploy config | `wrangler.jsonc` | entry, assets, migrations |
-| Cloudflare infra IaC | `infra/cloudflare/` | custom domain + widget |
-| DigitalOcean media infra | `infra/digitalocean-min/` | droplet + Nix services |
+| External infra contract | `docs/deployment-contract.md` | MediaMTX/Turnstile/env expectations |
 
 ## CONVENTIONS
 - Biome is the only formatter/linter (`biome.json`), with tabs and double quotes.
 - Local `pnpm run test` uses Vitest threads for stability; CI keeps Cloudflare Workers pool coverage via `pnpm run test:workers`.
 - Path alias is `@/* -> src/*` in TS, Vite, and Vitest.
-- Wrangler deploys worker code; Terraform manages infra-side resources.
+- Wrangler deploys worker code; production host infrastructure lives outside this repo.
 
 ## ANTI-PATTERNS (THIS PROJECT)
 - Do not edit generated artifacts: `src/routeTree.gen.ts`, `src/styles.css`, `worker-configuration.d.ts`.
-- Do not commit transient/build artifacts: `dist/`, `.wrangler/`, `.tanstack/`, `**/.terraform/`, `*.tfstate*`.
-- Do not change `/api/mediamtx/auth` semantics without syncing app + infra configs.
+- Do not commit transient/build artifacts: `dist/`, `.wrangler/`, `.tanstack/`.
+- Do not change `/api/mediamtx/auth` semantics without updating `docs/deployment-contract.md`.
 - Do not bypass `RoomStore` contract for route-to-DO interactions.
 
 ## UNIQUE STYLES
@@ -72,8 +69,5 @@ pnpm run deploy
   - `src/routes/AGENTS.md`
   - `src/durable-objects/AGENTS.md`
   - `src/utils/AGENTS.md`
-  - `infra/cloudflare/AGENTS.md`
-  - `infra/digitalocean-min/AGENTS.md`
-  - `infra/digitalocean-min/nix/AGENTS.md`
 - CI sequence: install (`--frozen-lockfile`) -> `pnpm run types` -> build -> test.
 - LSP symbol server was unavailable in this environment; code-map decisions use grep + AST + explore evidence.
