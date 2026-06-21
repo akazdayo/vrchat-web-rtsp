@@ -67,7 +67,13 @@ The frontend displays its RTSP output URL as:
 ${VITE_MEDIAMTX_OUTPUT_URL}/${sessionCode}
 ```
 
-Production infra must expose compatible MediaMTX endpoints and allow browser WHIP publishing from the Worker app origin.
+Production infra must expose compatible MediaMTX endpoints and allow browser WHIP publishing from the Worker app origin. A working deployment needs both the WHIP HTTP endpoint and the WebRTC ICE transport path:
+
+- The WHIP endpoint must accept `POST /${sessionCode}/whip` from browsers loaded from the Worker app origin.
+- MediaMTX must advertise the public WebRTC host that browsers can reach.
+- MediaMTX must expose its ICE listener over both UDP and TCP on the configured WebRTC ICE port. The previous in-repo deployment used `8189` for both transports.
+
+Proxying only the WHIP HTTP endpoint is not enough. The WHIP request can succeed while the peer connection still times out if browsers cannot reach the advertised ICE UDP/TCP listener.
 
 Example production values:
 
