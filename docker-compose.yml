@@ -6,4 +6,20 @@ services:
       - "8889:8889"
     volumes:
       - ./mediamtx.yml:/mediamtx.yml
+    environment:
+      - MTX_AUTHHTTPADDRESS=http://app:3000/api/mediamtx/auth
+    restart: unless-stopped
+
+  app:
+    build: .
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    environment:
+      - TURNSTILE_SECRET_KEY=${TURNSTILE_SECRET_KEY:-}
+      - VITE_SITE_KEY=${VITE_SITE_KEY:-}
+      - DEV_SKIP_TURNSTILE=${DEV_SKIP_TURNSTILE:-true}
+      - VITE_DEV_SKIP_TURNSTILE=${VITE_DEV_SKIP_TURNSTILE:-true}
     restart: unless-stopped

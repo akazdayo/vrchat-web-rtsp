@@ -25,7 +25,7 @@ cloudflare/
 ## CONVENTIONS
 - Terraform version floor is `>= 1.6`; provider is `cloudflare/cloudflare` `~> 5.16`.
 - Defaults align with `wrangler.jsonc` worker service/hostname values.
-- Apply order assumes worker service already exists (`bun run deploy` once).
+- Apply order assumes worker service already exists (`pnpm run deploy` once).
 - Terraform scope here is infra bindings; Durable Object script lifecycle stays in Wrangler.
 
 ## ANTI-PATTERNS

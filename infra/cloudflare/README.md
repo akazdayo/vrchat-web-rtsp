@@ -33,6 +33,6 @@ terraform apply
 
 - Defaults are based on `wrangler.jsonc` for `worker_service` and
   `worker_hostname`.
-- Ensure the Worker service exists before applying (run `bun run deploy` once
+- Ensure the Worker service exists before applying (run `pnpm run deploy` once
   if it has never been deployed).
 - Durable Objects and the Worker script remain managed by Wrangler.

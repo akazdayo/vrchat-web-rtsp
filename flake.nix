@@ -22,7 +22,7 @@
       {
         devShell = pkgs.mkShell {
           buildInputs = with pkgs; [
-            bun
+            pnpm
             nodejs_24
             mediamtx
             terraform

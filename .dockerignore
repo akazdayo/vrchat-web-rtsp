@@ -1,0 +1,11 @@
+node_modules
+dist
+.wrangler
+.tanstack
+.git
+.gitignore
+*.md
+.envrc
+infra
+*.tfstate*
+.terraform
